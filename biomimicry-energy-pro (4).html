@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BiomimicryEnergy Pro | Renewable Simulation Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --bg:#0e1a12;--green:#4caf6e;--green2:#2d7a4a;--green3:#6ecf8a;
+  --amber:#d4a843;--amber2:#f0c060;--teal:#3dc9b0;--rose:#e06060;--lilac:#9b82cc;
+  --cream:#f0e8d0;--text:#d8e8dc;--muted:rgba(200,230,210,0.45);
+  --border:rgba(76,175,110,0.15);--border2:rgba(76,175,110,0.28);
+  --glass:rgba(20,38,25,0.65);--glass2:rgba(14,26,18,0.88);
+  --mono:'DM Mono',monospace;--display:'Playfair Display',serif;--sans:'DM Sans',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;line-height:1.5;}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 900px 700px at 5% 15%,rgba(76,175,110,0.07) 0%,transparent 55%),
+  radial-gradient(ellipse 700px 500px at 95% 85%,rgba(61,201,176,0.05) 0%,transparent 55%),
+  radial-gradient(ellipse 600px 500px at 50% 50%,rgba(212,168,67,0.03) 0%,transparent 55%);}
+body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(76,175,110,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(76,175,110,0.022) 1px,transparent 1px);
+  background-size:48px 48px;}
+
+header{position:relative;z-index:20;display:flex;align-items:center;justify-content:space-between;
+  padding:13px 28px;background:var(--glass2);border-bottom:1px solid var(--border2);backdrop-filter:blur(24px);}
+.logo-mark{display:flex;align-items:center;gap:13px;}
+.logo-icon{width:40px;height:40px;border-radius:10px;background:linear-gradient(140deg,var(--green3),var(--green2));
+  display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 18px rgba(76,175,110,0.3);}
+.logo-text{font-family:var(--display);font-size:1.15rem;font-weight:800;color:var(--cream);}
+.logo-text small{display:block;font-family:var(--mono);font-size:0.58rem;letter-spacing:3.5px;font-weight:400;color:var(--muted);}
+
+/* MODE SWITCHER */
+.mode-switcher{display:flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
+.mode-btn{padding:8px 20px;font-family:var(--mono);font-size:0.64rem;letter-spacing:1.5px;text-transform:uppercase;
+  cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all 0.22s;}
+.mode-btn:first-child{border-right:1px solid var(--border2);}
+.mode-btn.aw{background:rgba(76,175,110,0.18);color:var(--green3);}
+.mode-btn.as{background:rgba(212,168,67,0.18);color:var(--amber2);}
+.mode-btn:hover:not(.aw):not(.as){background:rgba(255,255,255,0.04);color:var(--text);}
+
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green3);box-shadow:0 0 10px var(--green3);animation:lp 1.8s ease-in-out infinite;}
+@keyframes lp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.75)}}
+.live-indicator{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:0.62rem;letter-spacing:2px;color:var(--muted);}
+
+.module-section.hidden{display:none;}
+.section-header{position:relative;z-index:10;display:flex;align-items:center;gap:16px;padding:14px 28px 11px;border-bottom:1px solid var(--border);}
+.sec-badge{padding:5px 14px;border-radius:4px;font-family:var(--mono);font-size:0.62rem;letter-spacing:2.5px;text-transform:uppercase;font-weight:500;}
+.sec-badge-wind{background:rgba(76,175,110,0.12);border:1px solid rgba(76,175,110,0.35);color:var(--green3);}
+.sec-badge-solar{background:rgba(212,168,67,0.12);border:1px solid rgba(212,168,67,0.35);color:var(--amber2);}
+.sec-title{font-family:var(--display);font-size:1.05rem;font-weight:700;color:var(--cream);}
+.sec-subtitle{font-size:0.7rem;color:var(--muted);font-family:var(--mono);margin-top:1px;}
+
+.sim-layout{position:relative;z-index:10;display:grid;grid-template-columns:278px 1fr 278px;gap:16px;padding:14px 22px;}
+.panel{background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:16px;
+  backdrop-filter:blur(14px);position:relative;overflow:hidden;}
+.panel::before{content:'';position:absolute;top:0;left:0;width:44px;height:44px;
+  border-top:2px solid;border-left:2px solid;border-radius:12px 0 0 0;border-color:var(--accent-color,var(--green));opacity:0.45;}
+.panel::after{content:'';position:absolute;bottom:0;right:0;width:44px;height:44px;
+  border-bottom:2px solid;border-right:2px solid;border-radius:0 0 12px 0;border-color:var(--accent-color,var(--green));opacity:0.28;}
+.panel-head{font-family:var(--mono);font-size:0.6rem;letter-spacing:3.5px;text-transform:uppercase;
+  color:var(--accent-color,var(--green));margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;}
+.panel-head::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0;
+  background:var(--accent-color,var(--green));box-shadow:0 0 10px var(--accent-color,var(--green));}
+.sub-head{font-family:var(--mono);font-size:0.56rem;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--amber);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;}
+.sub-head::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber);}
+
+.ctrl{margin-bottom:11px;}
+.ctrl-row{display:flex;justify-content:space-between;align-items:baseline;font-size:0.7rem;color:var(--muted);margin-bottom:5px;font-family:var(--mono);}
+.ctrl-row .val{font-family:var(--mono);font-size:0.82rem;color:var(--accent-color,var(--green));font-weight:500;}
+.ctrl-row .vamb{font-family:var(--mono);font-size:0.82rem;color:var(--amber2);font-weight:500;}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;cursor:pointer;
+  background:linear-gradient(90deg,var(--rc,var(--green3)) var(--p,40%),rgba(255,255,255,0.08) var(--p,40%));border-radius:2px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--bg);border:2px solid var(--rc,var(--green3));box-shadow:0 0 8px var(--rc,var(--green3));cursor:pointer;}
+input[type=range].ra{--rc:var(--amber2);}
+select{width:100%;background:rgba(0,0,0,0.35);border:1px solid var(--border);color:var(--text);padding:7px 10px;
+  border-radius:6px;font-family:var(--mono);font-size:0.73rem;outline:none;cursor:pointer;margin-top:4px;}
+select option{background:#0a1a0e;}
+
+.design-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px;}
+.dtab{padding:9px 5px;border:1px solid var(--border);border-radius:7px;background:rgba(255,255,255,0.02);
+  color:var(--muted);font-family:var(--mono);font-size:0.6rem;letter-spacing:1px;text-transform:uppercase;
+  cursor:pointer;transition:all 0.2s;text-align:center;line-height:1.5;}
+.dtab:hover{border-color:rgba(76,175,110,0.4);color:var(--text);}
+.dtab.active{background:rgba(76,175,110,0.12);border-color:var(--green3);color:var(--green3);
+  box-shadow:0 0 16px rgba(76,175,110,0.18),inset 0 0 10px rgba(76,175,110,0.07);}
+.dtab-icon{font-size:1.1rem;display:block;margin-bottom:3px;}
+
+.metric{background:rgba(0,0,0,0.28);border:1px solid rgba(76,175,110,0.1);border-radius:7px;
+  padding:10px 12px;margin-bottom:8px;position:relative;overflow:hidden;}
+.metric::after{content:'';position:absolute;bottom:0;left:0;height:2px;width:var(--fill,50%);
+  background:var(--mc,var(--green));box-shadow:0 0 8px var(--mc,var(--green));transition:width 0.55s cubic-bezier(.4,0,.2,1);}
+.metric-label{font-size:0.58rem;letter-spacing:2.8px;text-transform:uppercase;color:var(--muted);font-family:var(--mono);}
+.metric-val{font-family:var(--display);font-weight:700;font-size:1.5rem;color:var(--mc,var(--green));line-height:1.15;margin-top:2px;}
+.metric-unit{font-size:0.65rem;color:var(--muted);margin-left:3px;font-family:var(--mono);font-weight:300;}
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+.viz-center{display:flex;flex-direction:column;gap:10px;}
+.canvas-wrap{position:relative;border-radius:10px;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 85%,rgba(76,175,110,0.06) 0%,rgba(10,20,14,0.9) 60%);border:1px solid var(--border);}
+canvas.main-canvas{display:block;width:100%;}
+canvas.overlay-canvas{position:absolute;inset:0;pointer-events:none;}
+.design-info{background:rgba(0,0,0,0.28);border:1px solid var(--border);border-radius:7px;padding:10px 15px;
+  font-size:0.71rem;color:var(--muted);line-height:1.65;text-align:center;}
+.design-info strong{display:block;font-family:var(--display);font-weight:700;font-size:0.9rem;color:var(--cream);margin-bottom:3px;}
+
+.section-divider{position:relative;z-index:10;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);margin:4px 0;}
+.charts-row{position:relative;z-index:10;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:14px 22px 22px;}
+.chart-card{background:var(--glass);border:1px solid var(--border);border-radius:10px;padding:13px;position:relative;}
+.chart-card::before{content:'';position:absolute;top:-1px;left:-1px;width:18px;height:18px;
+  border-top:1px solid var(--green);border-left:1px solid var(--green);border-radius:10px 0 0 0;opacity:0.45;}
+.chart-title{font-family:var(--mono);font-size:0.59rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.chart-card canvas{max-height:120px;}
+
+.statusbar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(10,18,13,0.97);
+  border-top:1px solid var(--border);padding:5px 22px;display:flex;gap:24px;align-items:center;
+  font-family:var(--mono);font-size:0.6rem;letter-spacing:1.5px;color:var(--muted);}
+.sb-item{display:flex;align-items:center;gap:6px;}
+.sb-dot{width:5px;height:5px;border-radius:50%;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(76,175,110,0.25);border-radius:2px;}
+.bottom-pad{height:40px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">
+    <div class="logo-icon">🌿</div>
+    <div class="logo-text">BiomimicryEnergy Pro<small>RENEWABLE SIMULATION PLATFORM v3.0</small></div>
+  </div>
+  <div class="mode-switcher">
+    <button class="mode-btn aw" id="btnWind" onclick="switchModule('wind')">🌬️ WIND MODULE</button>
+    <button class="mode-btn" id="btnSolar" onclick="switchModule('solar')">☀️ SOLAR MODULE</button>
+  </div>
+  <div class="live-indicator"><span class="live-dot"></span>SIMULATION LIVE</div>
+</header>
+
+<!-- ══ WIND MODULE ══ -->
+<div id="windModule" class="module-section">
+  <div class="section-header">
+    <span class="sec-badge sec-badge-wind">§ 01</span>
+    <div><div class="sec-title">Wind Turbine Biomimicry Simulator</div>
+    <div class="sec-subtitle">Betz limit · Aerodynamics · Nature-Inspired Blade Design</div></div>
+  </div>
+  <div class="sim-layout">
+    <div class="panel" style="--accent-color:var(--green3)">
+      <div class="panel-head">Wind Parameters</div>
+      <div class="design-tabs" id="windTabs">
+        <button class="dtab active" data-wdesign="conv"><span class="dtab-icon">⚙️</span>Conventional</button>
+        <button class="dtab" data-wdesign="owl"><span class="dtab-icon">🦉</span>Owl Turbine</button>
+        <button class="dtab" data-wdesign="whale"><span class="dtab-icon">🐋</span>Whale Turbine</button>
+        <button class="dtab" data-wdesign="maple"><span class="dtab-icon">🍁</span>Maple Seed</button>
+      </div>
+      <div class="ctrl"><div class="ctrl-row">Wind Speed <span class="val" id="vWS">10</span> m/s</div><input type="range" id="sWS" min="0" max="25" value="10" step="0.5"></div>
+      <div class="ctrl"><div class="ctrl-row">Turbulence Level <span class="val" id="vTurb">20</span>%</div><input type="range" id="sTurb" min="0" max="100" value="20"></div>
+      <div class="ctrl"><div class="ctrl-row">Blade Pitch Angle <span class="val" id="vPitch">8</span>°</div><input type="range" id="sPitch" min="0" max="30" value="8"></div>
+      <div class="ctrl"><div class="ctrl-row">Blade Length <span class="val" id="vBL">45</span> m</div><input type="range" id="sBL" min="10" max="80" value="45"></div>
+      <div class="ctrl"><div class="ctrl-row">Air Density <span class="val" id="vRho">1.22</span> kg/m³</div><input type="range" id="sRho" min="1.0" max="1.3" step="0.01" value="1.22"></div>
+      <div class="ctrl"><div class="ctrl-row">Rotation Speed <span class="val" id="vRPM">12</span> RPM</div><input type="range" id="sRPM" min="5" max="25" value="12"></div>
+      <div class="ctrl"><div class="ctrl-row" style="margin-bottom:4px;">Blade Surface Texture</div>
+        <select id="selTexture"><option>Smooth</option><option>Owl Serrations</option><option>Whale Tubercles</option><option>Maple Seed Shape</option></select></div>
+      <div class="ctrl"><div class="ctrl-row" style="margin-bottom:4px;">Number of Blades</div>
+        <select id="selBlades"><option value="2">2 Blades</option><option value="3" selected>3 Blades</option><option value="4">4 Blades</option></select></div>
+      <!-- PowerCone Controls -->
+      <div id="pcControls" style="display:none;">
+        <div class="sub-head">PowerCone Parameters</div>
+        <div class="ctrl"><div class="ctrl-row">Cone Blade Length <span class="vamb" id="vCBL">40</span>%</div><input type="range" class="ra" id="sCBL" min="20" max="80" value="40"></div>
+        <div class="ctrl"><div class="ctrl-row">Cone Blade Pitch <span class="vamb" id="vCPitch">15</span>°</div><input type="range" class="ra" id="sCPitch" min="5" max="45" value="15"></div>
+        <div class="ctrl"><div class="ctrl-row">Cone Spin Ratio <span class="vamb" id="vCSpin">2.1</span>×</div><input type="range" class="ra" id="sCSpin" min="1" max="4" step="0.1" value="2.1"></div>
+        <div class="ctrl"><div class="ctrl-row">Cone Taper Angle <span class="vamb" id="vCTaper">25</span>°</div><input type="range" class="ra" id="sCTaper" min="10" max="50" value="25"></div>
+      </div>
+    </div>
+    <div class="viz-center">
+      <div class="canvas-wrap" style="height:480px;">
+        <canvas id="windCanvas" class="main-canvas" height="480"></canvas>
+        <canvas id="windParticles" class="overlay-canvas"></canvas>
+      </div>
+      <div class="design-info" id="windInfo"><strong>NACA 0012 — Conventional Configuration</strong>Standard aerodynamic profile · Betz limit 59.3% · Pitch-optimised rotor</div>
+    </div>
+    <div class="panel" style="--accent-color:var(--green3)">
+      <div class="panel-head">Live Performance</div>
+      <div class="metric" style="--mc:var(--green3)"><div class="metric-label">Power Generation</div><div class="metric-val" id="mWPow">0<span class="metric-unit">kW</span></div></div>
+      <div class="metric-grid">
+        <div class="metric" style="--mc:var(--teal)"><div class="metric-label">Lift Coeff CL</div><div class="metric-val" id="mWCL">0</div></div>
+        <div class="metric" style="--mc:var(--rose)"><div class="metric-label">Drag Coeff CD</div><div class="metric-val" id="mWCD">0</div></div>
+      </div>
+      <div class="metric" style="--mc:var(--teal)"><div class="metric-label">Lift-to-Drag Ratio</div><div class="metric-val" id="mWLD">0</div></div>
+      <div class="metric" style="--mc:var(--green3)"><div class="metric-label">Efficiency</div><div class="metric-val" id="mWEff">0<span class="metric-unit">%</span></div></div>
+      <div class="metric" style="--mc:var(--amber)"><div class="metric-label">Noise Pollution</div><div class="metric-val" id="mWNoise">0<span class="metric-unit">dB</span></div></div>
+      <div class="metric" style="--mc:var(--rose)"><div class="metric-label">Energy Loss</div><div class="metric-val" id="mWLoss">0<span class="metric-unit">%</span></div></div>
+    </div>
+  </div>
+  <div class="section-divider"></div>
+  <div class="charts-row">
+    <div class="chart-card"><div class="chart-title">▸ Efficiency Comparison</div><canvas id="cEff"></canvas></div>
+    <div class="chart-card"><div class="chart-title">▸ Power vs Wind Speed</div><canvas id="cPow"></canvas></div>
+    <div class="chart-card"><div class="chart-title">▸ Turbine Noise (dB)</div><canvas id="cNoise"></canvas></div>
+    <div class="chart-card"><div class="chart-title">▸ Blade L/D Ratio</div><canvas id="cLD"></canvas></div>
+  </div>
+</div>
+
+<!-- ══ SOLAR MODULE ══ -->
+<div id="solarModule" class="module-section hidden">
+  <div class="section-header">
+    <span class="sec-badge sec-badge-solar">§ 02</span>
+    <div><div class="sec-title">Solar Panel Biomimicry Simulator</div>
+    <div class="sec-subtitle">Photovoltaics · Surface Nanostructures · Bio-Inspired Light Harvesting</div></div>
+  </div>
+  <div class="sim-layout">
+    <div class="panel" style="--accent-color:var(--amber2)">
+      <div class="panel-head">Solar Parameters</div>
+      <div class="design-tabs" id="solarTabs">
+        <button class="dtab active" data-sdesign="conv"><span class="dtab-icon">☀️</span>Conventional</button>
+        <button class="dtab" data-sdesign="leaf"><span class="dtab-icon">🌿</span>Leaf Inspired</button>
+        <button class="dtab" data-sdesign="butterfly"><span class="dtab-icon">🦋</span>Butterfly Wing</button>
+        <button class="dtab" data-sdesign="moth"><span class="dtab-icon">🌑</span>Moth Eye</button>
+      </div>
+      <div class="ctrl"><div class="ctrl-row">Solar Irradiance <span class="val" id="vIrr">800</span> W/m²</div><input type="range" class="ra" id="sIrr" min="200" max="1000" value="800"></div>
+      <div class="ctrl"><div class="ctrl-row">Panel Tilt Angle <span class="val" id="vTilt">30</span>°</div><input type="range" class="ra" id="sTilt" min="0" max="60" value="30"></div>
+      <div class="ctrl"><div class="ctrl-row">Temperature <span class="val" id="vTemp">25</span>°C</div><input type="range" class="ra" id="sTemp" min="10" max="50" value="25"></div>
+      <div class="ctrl"><div class="ctrl-row">Dust Level <span class="val" id="vDust">10</span>%</div><input type="range" class="ra" id="sDust" min="0" max="100" value="10"></div>
+      <div class="ctrl"><div class="ctrl-row">Panel Area <span class="val" id="vArea">5</span> m²</div><input type="range" class="ra" id="sArea" min="1" max="10" value="5"></div>
+      <div class="ctrl"><div class="ctrl-row">Anti-Reflective Coating <span class="val" id="vARC">60</span>%</div><input type="range" class="ra" id="sARC" min="0" max="100" value="60"></div>
+    </div>
+    <div class="viz-center">
+      <div class="canvas-wrap" style="height:360px;">
+        <canvas id="solarCanvas" class="main-canvas" height="360"></canvas>
+        <canvas id="solarRays" class="overlay-canvas"></canvas>
+      </div>
+      <div class="design-info" id="solarInfo"><strong>Standard Silicon PV — Conventional Panel</strong>Flat surface · PERC cell technology · Standard AR coating</div>
+    </div>
+    <div class="panel" style="--accent-color:var(--amber2)">
+      <div class="panel-head">Solar Performance</div>
+      <div class="metric" style="--mc:var(--amber2)"><div class="metric-label">Power Output</div><div class="metric-val" id="mSPow">0<span class="metric-unit">W</span></div></div>
+      <div class="metric" style="--mc:var(--green3)"><div class="metric-label">Panel Efficiency</div><div class="metric-val" id="mSEff">0<span class="metric-unit">%</span></div></div>
+      <div class="metric-grid">
+        <div class="metric" style="--mc:var(--teal)"><div class="metric-label">Light Absorption</div><div class="metric-val" id="mSAbs">0<span class="metric-unit">%</span></div></div>
+        <div class="metric" style="--mc:var(--rose)"><div class="metric-label">Reflection Loss</div><div class="metric-val" id="mSRef">0<span class="metric-unit">%</span></div></div>
+      </div>
+      <div class="metric" style="--mc:var(--amber)"><div class="metric-label">Temperature Loss</div><div class="metric-val" id="mSTLoss">0<span class="metric-unit">%</span></div></div>
+      <div class="metric" style="--mc:var(--green3)"><div class="metric-label">Daily Energy Generation</div><div class="metric-val" id="mSDaily">0<span class="metric-unit">kWh</span></div></div>
+    </div>
+  </div>
+  <div class="section-divider"></div>
+  <div class="charts-row">
+    <div class="chart-card" style="grid-column:span 2"><div class="chart-title">▸ Solar Light Absorption Radar</div><canvas id="cLight"></canvas></div>
+    <div class="chart-card" style="grid-column:span 2"><div class="chart-title">▸ Efficiency by Design Type</div><canvas id="cSolarEff"></canvas></div>
+  </div>
+</div>
+
+<div class="statusbar">
+  <div class="sb-item"><span class="sb-dot" id="sbDot" style="background:var(--green3);box-shadow:0 0 6px var(--green3);"></span><span id="sbLbl">WIND MODULE</span></div>
+  <span id="sbWind">WIND: 10 m/s</span>
+  <span id="sbMode">MODE: CONVENTIONAL</span>
+  <span id="sbSolar">IRRADIANCE: 800 W/m²</span>
+  <span style="margin-left:auto;color:rgba(200,220,210,0.13)">BIOMIMICRY ENERGY PRO © 2025</span>
+</div>
+<div class="bottom-pad"></div>
+
+<script>
+let wDesign='conv', sDesign='conv';
+let rotAngle=0, lastTs=0, turbPhase=0, powerConeAngle=0;
+let wParticles=[], sRayPhases=[];
+let activeModule='wind';
+const NP=28, NR=14;
+
+/* ── MODULE SWITCH ── */
+function switchModule(m){
+  activeModule=m;
+  document.getElementById('windModule').classList.toggle('hidden',m!=='wind');
+  document.getElementById('solarModule').classList.toggle('hidden',m!=='solar');
+  document.getElementById('btnWind').className='mode-btn'+(m==='wind'?' aw':'');
+  document.getElementById('btnSolar').className='mode-btn'+(m==='solar'?' as':'');
+  const d=document.getElementById('sbDot'), l=document.getElementById('sbLbl');
+  if(m==='wind'){d.style.cssText='background:var(--green3);box-shadow:0 0 6px var(--green3);';l.textContent='WIND MODULE';}
+  else{d.style.cssText='background:var(--amber2);box-shadow:0 0 6px var(--amber2);';l.textContent='SOLAR MODULE';}
+  if(m==='solar'){resizeSolar();computeSolar();}else{resizeWind();computeWind();}
+}
+
+/* ── PROFILES ── */
+const WIND={
+  conv: {cp:0.40,cl:1.05,cd:0.052,noiseBase:65,noiseK:0.80,ld:20,color:'#4caf6e',bc:'#a8e6c0',info:'<strong>NACA 0012 — Conventional Configuration</strong>Standard aerodynamic profile · Betz limit 59.3% · Pitch-optimised rotor'},
+  owl:  {cp:0.38,cl:1.18,cd:0.044,noiseBase:36,noiseK:0.30,ld:27,color:'#9b82cc',bc:'#c4b0e8',info:'<strong>Owl-Inspired — Serrated Trailing Edge</strong>Comb micro-serrations break vortex shedding · −18 dB noise · Near-silent at low speeds'},
+  whale:{cp:0.44,cl:1.38,cd:0.037,noiseBase:57,noiseK:0.50,ld:37,color:'#3dc9b0',bc:'#80ded2',info:'<strong>Humpback Whale — Wide Flipper Blade</strong>Broad fan-shaped blades with sinusoidal tubercle leading edge · +31% lift · Stall-resistant at variable wind'},
+  maple:{cp:0.42,cl:1.22,cd:0.048,noiseBase:50,noiseK:0.40,ld:25,color:'#d4a843',bc:'#f0c875',info:'<strong>Maple Samara — Conventional Blades + 3-Blade PowerCone</strong>Outer conventional rotor · Inner 3-blade PowerCone counter-rotates · Augmented capture area · Low cut-in speed'}
+};
+const SOLAR={
+  conv:     {baseEff:0.18,absBonus:0,refBase:0.08,tempK:0.004,color:'#d4a843',info:'<strong>Standard Silicon PV — Conventional Panel</strong>Flat surface · PERC cell technology · Standard AR coating'},
+  leaf:     {baseEff:0.21,absBonus:0.04,refBase:0.05,tempK:0.003,color:'#4caf6e',info:'<strong>Leaf-Inspired — Micro-Channel Cooling</strong>Vein-like cooling channels reduce operating temp · +3% efficiency · Passive thermal management'},
+  butterfly:{baseEff:0.23,absBonus:0.06,refBase:0.04,tempK:0.0035,color:'#9b82cc',info:'<strong>Butterfly Wing — Nano Light Scattering</strong>Photonic nanostructures scatter light · +5% gain · Multi-spectral capture'},
+  moth:     {baseEff:0.25,absBonus:0.08,refBase:0.02,tempK:0.003,color:'#3dc9b0',info:'<strong>Moth Eye — Anti-Reflective Nano Bumps</strong>Gradient refractive index eliminates reflection · Minimal glare · +7% absorption'}
+};
+
+/* ── CANVAS ── */
+const wC=document.getElementById('windCanvas'), wpC=document.getElementById('windParticles');
+const wCtx=wC.getContext('2d'), wpCtx=wpC.getContext('2d');
+const sC=document.getElementById('solarCanvas'), srC=document.getElementById('solarRays');
+const sCtx=sC.getContext('2d'), srCtx=srC.getContext('2d');
+
+function resizeWind(){[wC,wpC].forEach(c=>{c.width=c.parentElement.clientWidth;c.height=480;});initWP();}
+function resizeSolar(){[sC,srC].forEach(c=>{c.width=c.parentElement.clientWidth;c.height=360;});initSR();}
+function initWP(){wParticles=[];for(let i=0;i<NP;i++)wParticles.push({x:Math.random()*wC.width,y:60+Math.random()*(wC.height-120),size:Math.random()*2+0.7,alpha:Math.random()*0.6+0.25,dy:(Math.random()-0.5)*0.35});}
+function initSR(){sRayPhases=Array.from({length:NR},(_,i)=>({x:40+i*(sC.width/NR),phase:Math.random()*Math.PI*2,speed:0.5+Math.random()*0.8,len:40+Math.random()*40}));}
+
+/* ── BLADE SHAPES ── */
+function drawBlade(ctx,R,sc,mode){
+  if(mode==='conv'||mode==='maple'){
+    ctx.beginPath();ctx.moveTo(0,0);
+    ctx.bezierCurveTo(-8*sc,-R*.3,-9*sc,-R*.7,-2*sc,-R);ctx.lineTo(0,-R);
+    ctx.bezierCurveTo(6*sc,-R*.7,6*sc,-R*.3,0,0);ctx.closePath();
+  } else if(mode==='owl'){
+    ctx.beginPath();ctx.moveTo(0,0);
+    ctx.bezierCurveTo(-7*sc,-R*.3,-8*sc,-R*.7,-2*sc,-R);ctx.lineTo(2*sc,-R);
+    for(let s=8;s>=0;s--){const t=s/8,y=-R*(1-t);ctx.lineTo((s%2===0?6:2)*sc,y);}
+    ctx.closePath();
+  } else if(mode==='whale'){
+    // Wide humpback flipper — fan-shaped, sinusoidal tubercle leading edge, blunt tip
+    const steps=20;
+    ctx.beginPath();ctx.moveTo(0,0);
+    for(let s=0;s<=steps;s++){
+      const t=s/steps;
+      const bW=(20+4*Math.pow(1-t,0.5))*sc*(1-t*0.45);
+      const lump=Math.sin(t*Math.PI*3.5)*9*sc*(1-t*0.7);
+      ctx.lineTo(-bW+lump,-R*t);
+    }
+    ctx.lineTo(0,-R);ctx.lineTo(5*sc,-R*0.9);
+    for(let s=steps;s>=0;s--){
+      const t=s/steps, tW=(6+2*t)*sc*(1-t*0.35);
+      ctx.lineTo(tW,-R*t);
+    }
+    ctx.closePath();
+  }
+}
+
+/* ── POWERCONE — SLIM CURVED AERODYNAMIC BLADES ── */
+/* Slim crescent blades that spiral outward from centre, like a centrifugal
+   impeller — narrow at root, gently widens, then scythes into a fine tip.
+   The strong inward curve of each blade visually channels airflow from the
+   hub outward along the blade span.                                         */
+function drawPowerCone(ctx, cx, cy, sc, angle, cbl, cpitch, ctaper) {
+  const R      = (cbl / 100) * 54 * sc;   // blade tip radius
+  const hubR   = 3.8 * sc;                // centre hub cap radius
+  const curve  = (ctaper / 50) * 0.55;    // curvature intensity (0 → 1.1)
+  const pOff   = (cpitch - 15) * 0.011;   // pitch trim
+
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  // Faint radial glow
+  const glow = ctx.createRadialGradient(0, 0, hubR, 0, 0, R * 1.45);
+  glow.addColorStop(0,   'rgba(255,252,244,0.10)');
+  glow.addColorStop(0.55,'rgba(255,252,244,0.03)');
+  glow.addColorStop(1,   'transparent');
+  ctx.beginPath(); ctx.arc(0, 0, R * 1.45, 0, Math.PI * 2);
+  ctx.fillStyle = glow; ctx.fill();
+
+  ctx.rotate(angle * Math.PI / 180);
+
+  for (let b = 0; b < 3; b++) {
+    ctx.save();
+    ctx.rotate((b / 3) * Math.PI * 2 + pOff);
+
+    /*  Blade cross-section widths (slim — max chord only ~3.5×sc) */
+    const cRoot = 2.2 * sc;   // half-chord at root
+    const cMid  = 3.6 * sc;   // half-chord at widest (~45% span)
+    const cTip  = 0.7 * sc;   // half-chord at tip
+
+    /*  The blade spine follows an Archimedean-spiral-like path:
+        starts pointing straight up (−y) from the hub, then curves
+        sideways (−x direction) as it extends outward. The amount of
+        sideways curl is controlled by `curve`.                       */
+    const xCurl = R * curve;   // total lateral displacement of tip vs root
+
+    // Spine control points  (going root → tip)
+    const sx0 = 0,              sy0 = -hubR;
+    const sx1 = -xCurl * 0.30, sy1 = -R * 0.38;
+    const sx2 = -xCurl * 0.72, sy2 = -R * 0.72;
+    const sx3 = -xCurl,        sy3 = -R;
+
+    // Leading edge = spine offset to the left (−x) side, perpendicular to local tangent
+    // Trailing edge = spine offset to the right (+x) side
+    // We approximate "perpendicular" simply as ±x shift (valid for mostly-vertical blades)
+    const LE = (xi, yi, c) => [xi - c, yi];
+    const TE = (xi, yi, c) => [xi + c, yi];
+
+    const [le0x, le0y] = LE(sx0, sy0, cRoot);
+    const [te0x, te0y] = TE(sx0, sy0, cRoot * 0.7);
+
+    const [le1x, le1y] = LE(sx1, sy1, cMid);
+    const [te1x, te1y] = TE(sx1, sy1, cMid * 0.55);
+
+    const [le2x, le2y] = LE(sx2, sy2, cMid * 0.75);
+    const [te2x, te2y] = TE(sx2, sy2, cMid * 0.40);
+
+    const [le3x, le3y] = LE(sx3, sy3, cTip);
+    const [te3x, te3y] = TE(sx3, sy3, cTip * 0.5);
+
+    ctx.beginPath();
+
+    // ── Leading edge (root → tip) ──
+    ctx.moveTo(le0x, le0y);
+    ctx.bezierCurveTo(
+      le0x - xCurl * 0.12, sy0 - (sy1 - sy0) * 0.35,
+      le1x + xCurl * 0.04, le1y,
+      le2x,                le2y
+    );
+    ctx.bezierCurveTo(
+      le2x - xCurl * 0.10, (le2y + le3y) * 0.55,
+      le3x + cTip * 0.6,   le3y,
+      le3x,                le3y
+    );
+
+    // ── Tip (rounded fine point) ──
+    ctx.quadraticCurveTo(
+      (le3x + te3x) * 0.5 - cTip * 0.3, sy3 - cTip * 0.8,
+      te3x, te3y
+    );
+
+    // ── Trailing edge (tip → root) ──
+    ctx.bezierCurveTo(
+      te2x + xCurl * 0.08, (te2y + te3y) * 0.55,
+      te2x,                te2y,
+      te1x,                te1y
+    );
+    ctx.bezierCurveTo(
+      te1x + xCurl * 0.06, te1y + (te0y - te1y) * 0.4,
+      te0x - xCurl * 0.05, sy0 - (sy1 - sy0) * 0.22,
+      te0x,                te0y
+    );
+
+    ctx.closePath();
+
+    // ── Fill: bright leading face → shadowed trailing face ──
+    const bg = ctx.createLinearGradient(le1x, le1y, te1x, te1y);
+    bg.addColorStop(0,    'rgba(254,253,250,0.98)');
+    bg.addColorStop(0.18, 'rgba(242,240,234,0.96)');
+    bg.addColorStop(0.45, 'rgba(218,215,206,0.93)');
+    bg.addColorStop(0.72, 'rgba(185,182,172,0.88)');
+    bg.addColorStop(1,    'rgba(145,142,133,0.80)');
+    ctx.fillStyle = bg;
+    ctx.shadowColor    = 'rgba(0,0,0,0.28)';
+    ctx.shadowBlur     = 4.5 * sc;
+    ctx.shadowOffsetX  = 1.8 * sc;
+    ctx.shadowOffsetY  = 1.5 * sc;
+    ctx.fill();
+    ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+
+    // ── Outline ──
+    ctx.strokeStyle = 'rgba(165,162,152,0.50)';
+    ctx.lineWidth   = 0.7;
+    ctx.stroke();
+
+    // ── Spine / structural ridge (follows centre of blade) ──
+    ctx.beginPath();
+    ctx.moveTo(sx0, sy0);
+    ctx.bezierCurveTo(
+      sx0 - xCurl * 0.28, sy0 - (sy1 - sy0) * 0.35,
+      sx1 + xCurl * 0.04, sy1,
+      sx2,                sy2
+    );
+    ctx.bezierCurveTo(
+      sx2 - xCurl * 0.10, (sy2 + sy3) * 0.55,
+      sx3 + cTip * 0.3,   sy3,
+      sx3,                sy3
+    );
+    ctx.strokeStyle = 'rgba(148,145,135,0.36)';
+    ctx.lineWidth   = 0.5;
+    ctx.stroke();
+
+    // ── Leading-edge glint (bright white highlight along LE) ──
+    ctx.beginPath();
+    ctx.moveTo(le0x + 0.9 * sc, le0y);
+    ctx.bezierCurveTo(
+      le0x - xCurl * 0.10 + 0.9 * sc, sy0 - (sy1 - sy0) * 0.35,
+      le1x + xCurl * 0.05 + 0.8 * sc, le1y,
+      le2x + 0.7 * sc,                 le2y
+    );
+    ctx.strokeStyle = 'rgba(255,254,252,0.62)';
+    ctx.lineWidth   = 1.1;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // ── Central hub cap ──
+  const hg = ctx.createRadialGradient(-hubR * 0.32, -hubR * 0.38, 0, 0, 0, hubR * 1.1);
+  hg.addColorStop(0,   'rgba(255,254,252,1.0)');
+  hg.addColorStop(0.45,'rgba(215,212,202,0.97)');
+  hg.addColorStop(1,   'rgba(155,152,142,0.90)');
+  ctx.beginPath(); ctx.arc(0, 0, hubR, 0, Math.PI * 2);
+  ctx.fillStyle = hg;
+  ctx.shadowColor = 'rgba(0,0,0,0.25)'; ctx.shadowBlur = 4 * sc;
+  ctx.fill(); ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(175,172,162,0.42)'; ctx.lineWidth = 0.6; ctx.stroke();
+
+  ctx.restore();
+}
+
+/* ── DRAW WIND TURBINE ── */
+function drawWind(angle){
+  const W=wC.width, H=wC.height;
+  wCtx.clearRect(0,0,W,H);
+  const zoom=1.22;
+  wCtx.save();wCtx.translate(W/2,H/2);wCtx.scale(zoom,zoom);wCtx.translate(-W/2,-H/2);
+
+  const cx=W/2, hubY=H*0.31, tH=H*0.62;
+  const sc=Math.min(W,H)/460;
+  const blades=parseInt(document.getElementById('selBlades').value);
+  const blen=parseFloat(document.getElementById('sBL').value);
+  const R=(blen/80)*220*sc;
+  const m=WIND[wDesign];
+  const wind=parseFloat(document.getElementById('sWS').value);
+
+  // Wake
+  if(wind>2){
+    for(let i=0;i<6;i++){
+      const sx=26+i*20,sy=10+i*8,a=Math.min(wind/25,1)*0.24*(1-i*0.15);
+      wCtx.beginPath();wCtx.moveTo(cx,hubY);wCtx.quadraticCurveTo(cx+sx*2,hubY+sy,cx+sx*4,hubY+i*6-12);
+      wCtx.strokeStyle=m.color;wCtx.globalAlpha=a;wCtx.lineWidth=1.2;wCtx.setLineDash([3,7]);wCtx.stroke();
+      wCtx.beginPath();wCtx.moveTo(cx,hubY);wCtx.quadraticCurveTo(cx+sx*2,hubY-sy,cx+sx*4,hubY-i*6+12);
+      wCtx.strokeStyle=m.color;wCtx.globalAlpha=a;wCtx.lineWidth=1.2;wCtx.stroke();
+      wCtx.setLineDash([]);wCtx.globalAlpha=1;
+    }
+  }
+
+  // Tower
+  const tg=wCtx.createLinearGradient(cx-16*sc,0,cx+16*sc,0);
+  tg.addColorStop(0,'#0a1f14');tg.addColorStop(0.35,'#1a4a28');tg.addColorStop(0.65,'#2a6e3a');tg.addColorStop(1,'#0a1f14');
+  wCtx.beginPath();wCtx.moveTo(cx-9*sc,hubY+18);wCtx.lineTo(cx+9*sc,hubY+18);wCtx.lineTo(cx+16*sc,hubY+tH);wCtx.lineTo(cx-16*sc,hubY+tH);wCtx.closePath();
+  wCtx.fillStyle=tg;wCtx.fill();wCtx.strokeStyle='rgba(76,175,110,0.18)';wCtx.lineWidth=1;wCtx.stroke();
+
+  // Ground
+  const gg=wCtx.createRadialGradient(cx,hubY+tH,0,cx,hubY+tH,130*sc);
+  gg.addColorStop(0,'rgba(76,175,110,0.14)');gg.addColorStop(1,'transparent');
+  wCtx.beginPath();wCtx.ellipse(cx,hubY+tH,130*sc,15*sc,0,0,Math.PI*2);wCtx.fillStyle=gg;wCtx.fill();
+  wCtx.beginPath();wCtx.ellipse(cx,hubY+tH,130*sc,5*sc,0,0,Math.PI*2);wCtx.strokeStyle='rgba(76,175,110,0.28)';wCtx.lineWidth=1;wCtx.stroke();
+
+  // Nacelle
+  wCtx.beginPath();wCtx.roundRect(cx-27*sc,hubY+7*sc,54*sc,20*sc,4);
+  const ng=wCtx.createLinearGradient(cx-27*sc,hubY,cx+27*sc,hubY+28*sc);
+  ng.addColorStop(0,'#1a4a28');ng.addColorStop(0.5,'#2a6e3a');ng.addColorStop(1,'#1a4a28');
+  wCtx.fillStyle=ng;wCtx.fill();wCtx.strokeStyle=m.color;wCtx.lineWidth=1;wCtx.globalAlpha=0.5;wCtx.stroke();wCtx.globalAlpha=1;
+
+  // Rotor
+  wCtx.save();wCtx.translate(cx,hubY);wCtx.rotate(angle*Math.PI/180);
+  for(let i=0;i<blades;i++){
+    wCtx.save();wCtx.rotate((360/blades)*i*Math.PI/180);
+    wCtx.shadowColor=m.color;wCtx.shadowBlur=10;
+    drawBlade(wCtx,R,sc,wDesign);
+    const bg=wCtx.createLinearGradient(-16*sc,-R,12*sc,0);
+    if(wDesign==='whale'){
+      bg.addColorStop(0,'#1a587a');bg.addColorStop(0.35,'#1e6e90');bg.addColorStop(0.65,'#1a5878');bg.addColorStop(1,'#0e3248');
+    } else {
+      bg.addColorStop(0,m.bc);bg.addColorStop(0.55,m.color+'cc');bg.addColorStop(1,m.color+'44');
+    }
+    wCtx.fillStyle=bg;wCtx.fill();
+    wCtx.strokeStyle='rgba(255,255,255,0.07)';wCtx.lineWidth=0.6;wCtx.stroke();wCtx.shadowBlur=0;
+    if(wDesign==='whale'){
+      // Highlight the tubercle leading edge bumps
+      const st=20;wCtx.beginPath();
+      for(let s=0;s<=st;s++){
+        const t=s/st,bW=(20+4*Math.pow(1-t,0.5))*sc*(1-t*0.45),lump=Math.sin(t*Math.PI*3.5)*9*sc*(1-t*0.7);
+        if(s===0)wCtx.moveTo(-bW+lump,-R*t);else wCtx.lineTo(-bW+lump,-R*t);
+      }
+      wCtx.strokeStyle='rgba(61,201,176,0.4)';wCtx.lineWidth=1.3;wCtx.stroke();
+    }
+    if(wDesign==='owl'){
+      for(let s=2;s<=8;s+=2){
+        const sy=-R*(s/9);
+        wCtx.beginPath();wCtx.moveTo((s%4===0?5:2)*sc,sy);wCtx.lineTo((s%4===0?9:6)*sc,sy-.5);
+        wCtx.strokeStyle='rgba(155,130,204,0.45)';wCtx.lineWidth=0.7;wCtx.stroke();
+      }
+    }
+    wCtx.restore();
+  }
+  wCtx.restore();
+
+  // Hub
+  const hg=wCtx.createRadialGradient(cx,hubY,0,cx,hubY,14*sc);
+  hg.addColorStop(0,'#3a8a5a');hg.addColorStop(1,'#0a2018');
+  wCtx.beginPath();wCtx.arc(cx,hubY,14*sc,0,Math.PI*2);wCtx.fillStyle=hg;wCtx.fill();
+  wCtx.strokeStyle=m.color;wCtx.lineWidth=1.8;wCtx.globalAlpha=.8;wCtx.stroke();wCtx.globalAlpha=1;
+
+  if(wDesign==='maple'){
+    const cbl=parseFloat(document.getElementById('sCBL').value);
+    const cpit=parseFloat(document.getElementById('sCPitch').value);
+    const ctap=parseFloat(document.getElementById('sCTaper').value);
+    drawPowerCone(wCtx,cx,hubY,sc,powerConeAngle,cbl,cpit,ctap);
+  } else {
+    wCtx.beginPath();wCtx.arc(cx,hubY,4.5*sc,0,Math.PI*2);
+    wCtx.fillStyle=m.color;wCtx.shadowColor=m.color;wCtx.shadowBlur=16;wCtx.fill();wCtx.shadowBlur=0;
+  }
+  wCtx.restore(); // zoom
+}
+
+/* ── WIND PARTICLES ── */
+function tickWP(wind,turb){
+  const W=wpC.width,H=wpC.height;wpCtx.clearRect(0,0,W,H);turbPhase+=.04;
+  const col=WIND[wDesign].color;
+  wParticles.forEach(p=>{
+    const w2=Math.sin(turbPhase+p.y*.05)*turb*.15;
+    p.x+=(wind*.18)+w2;p.y+=p.dy;
+    if(p.x>W+12)p.x=-12;if(p.y<60||p.y>H-60)p.dy*=-1;
+    const tl=wind*1.4;
+    const g=wpCtx.createLinearGradient(p.x-tl,p.y,p.x,p.y);
+    g.addColorStop(0,'transparent');g.addColorStop(1,col);
+    wpCtx.beginPath();wpCtx.moveTo(p.x-tl,p.y);wpCtx.lineTo(p.x,p.y);
+    wpCtx.strokeStyle=g;wpCtx.globalAlpha=p.alpha*Math.min(wind/20,1);wpCtx.lineWidth=p.size;wpCtx.stroke();
+    wpCtx.beginPath();wpCtx.arc(p.x,p.y,p.size,0,Math.PI*2);
+    wpCtx.fillStyle=col;wpCtx.globalAlpha=p.alpha*Math.min(wind/15,1);wpCtx.fill();wpCtx.globalAlpha=1;
+  });
+}
+
+/* ── SOLAR PANEL ── */
+function drawSolar(irr,tilt,dust,arc){
+  const W=sC.width,H=sC.height;sCtx.clearRect(0,0,W,H);
+  const m=SOLAR[sDesign],cx=W/2,cy=H/2,pw=290,ph=165,tiltRad=tilt*Math.PI/180;
+  sCtx.save();sCtx.translate(cx,cy);
+  const skewX=Math.sin(tiltRad)*ph*.4,scY=Math.cos(tiltRad);
+  sCtx.globalAlpha=.22;sCtx.fillStyle='#000';
+  sCtx.beginPath();sCtx.moveTo(-pw/2+skewX+14,ph/2*scY+10);sCtx.lineTo(pw/2+skewX+14,ph/2*scY+10);sCtx.lineTo(pw/2-skewX+14,-ph/2*scY+10);sCtx.lineTo(-pw/2-skewX+14,-ph/2*scY+10);sCtx.closePath();sCtx.fill();sCtx.globalAlpha=1;
+  const pg=sCtx.createLinearGradient(-pw/2,0,pw/2,0);
+  if(sDesign==='conv'){pg.addColorStop(0,'#0a1a35');pg.addColorStop(.5,'#0d2855');pg.addColorStop(1,'#0a1a35');}
+  else if(sDesign==='leaf'){pg.addColorStop(0,'#0a2515');pg.addColorStop(.5,'#0d3825');pg.addColorStop(1,'#0a2515');}
+  else if(sDesign==='butterfly'){pg.addColorStop(0,'#1a0a30');pg.addColorStop(.5,'#2d1055');pg.addColorStop(1,'#1a0a30');}
+  else{pg.addColorStop(0,'#050e15');pg.addColorStop(.5,'#091c28');pg.addColorStop(1,'#050e15');}
+  sCtx.beginPath();sCtx.moveTo(-pw/2-skewX,ph/2*scY);sCtx.lineTo(pw/2-skewX,ph/2*scY);sCtx.lineTo(pw/2+skewX,-ph/2*scY);sCtx.lineTo(-pw/2+skewX,-ph/2*scY);sCtx.closePath();
+  sCtx.fillStyle=pg;sCtx.fill();sCtx.strokeStyle=m.color;sCtx.lineWidth=1.5;sCtx.globalAlpha=.6;sCtx.stroke();sCtx.globalAlpha=1;
+  sCtx.strokeStyle='rgba(255,255,255,0.07)';sCtx.lineWidth=.8;
+  for(let ci=1;ci<6;ci++){const t=ci/6,x1=-pw/2*(1-2*t),xS=skewX*(1-2*t);sCtx.beginPath();sCtx.moveTo(x1-xS,ph/2*scY);sCtx.lineTo(x1+xS,-ph/2*scY);sCtx.stroke();}
+  for(let ri=1;ri<3;ri++){const t=ri/3,ys=(1-2*t)*(ph/2*scY),xOff=skewX*(1-2*t);sCtx.beginPath();sCtx.moveTo(-pw/2+xOff,ys);sCtx.lineTo(pw/2+xOff,ys);sCtx.stroke();}
+  if(sDesign==='leaf'){sCtx.strokeStyle='rgba(76,175,110,0.22)';sCtx.lineWidth=1;for(let v=0;v<5;v++){const oy=(v-2)*30;sCtx.beginPath();sCtx.moveTo(-pw/2+skewX,oy*scY);sCtx.quadraticCurveTo(0,(oy-20)*scY,pw/2-skewX,oy*scY);sCtx.stroke();}}
+  else if(sDesign==='butterfly'){for(let i=0;i<42;i++){const bx=(Math.random()-.5)*pw*.9,by=(Math.random()-.5)*ph*.7*scY,xs=skewX*(by/(ph*.5*scY));sCtx.beginPath();sCtx.arc(bx+xs,by,1.5,0,Math.PI*2);sCtx.fillStyle='rgba(155,130,204,0.42)';sCtx.fill();}}
+  else if(sDesign==='moth'){for(let r=-4;r<=4;r++)for(let c=-8;c<=8;c++){const bx=c*28,by=r*30*scY,xs=skewX*(by/(ph*.5*scY+.001));sCtx.beginPath();sCtx.arc(bx+xs,by,3,0,Math.PI*2);sCtx.strokeStyle='rgba(61,201,176,0.28)';sCtx.lineWidth=.5;sCtx.stroke();}}
+  if(dust>5){sCtx.globalAlpha=dust*.004;sCtx.fillStyle='#a08060';sCtx.beginPath();sCtx.moveTo(-pw/2-skewX,ph/2*scY);sCtx.lineTo(pw/2-skewX,ph/2*scY);sCtx.lineTo(pw/2+skewX,-ph/2*scY);sCtx.lineTo(-pw/2+skewX,-ph/2*scY);sCtx.closePath();sCtx.fill();sCtx.globalAlpha=1;}
+  sCtx.beginPath();sCtx.moveTo(-pw/2-skewX,ph/2*scY);sCtx.lineTo(pw/2-skewX,ph/2*scY);sCtx.lineTo(pw/2+skewX,-ph/2*scY);sCtx.lineTo(-pw/2+skewX,-ph/2*scY);sCtx.closePath();sCtx.strokeStyle=m.color;sCtx.lineWidth=2;sCtx.globalAlpha=.8;sCtx.stroke();sCtx.globalAlpha=1;
+  const lg=sCtx.createRadialGradient(skewX,-ph*.2*scY,0,skewX,-ph*.2*scY,200);
+  lg.addColorStop(0,m.color+'33');lg.addColorStop(1,'transparent');
+  sCtx.beginPath();sCtx.moveTo(-pw/2-skewX,ph/2*scY);sCtx.lineTo(pw/2-skewX,ph/2*scY);sCtx.lineTo(pw/2+skewX,-ph/2*scY);sCtx.lineTo(-pw/2+skewX,-ph/2*scY);
+  sCtx.closePath();sCtx.fillStyle=lg;sCtx.globalAlpha=Math.min(irr/1000,.7)*.3;sCtx.fill();sCtx.globalAlpha=1;
+  sCtx.strokeStyle='#1a3a25';sCtx.lineWidth=5;sCtx.lineCap='round';
+  sCtx.beginPath();sCtx.moveTo(-pw*.2-skewX,ph/2*scY);sCtx.lineTo(-pw*.2,H*.42);sCtx.stroke();
+  sCtx.beginPath();sCtx.moveTo(pw*.2-skewX,ph/2*scY);sCtx.lineTo(pw*.2,H*.42);sCtx.stroke();sCtx.lineCap='butt';
+  const gg=sCtx.createLinearGradient(-200,H*.42,200,H*.42);gg.addColorStop(0,'transparent');gg.addColorStop(.5,m.color+'40');gg.addColorStop(1,'transparent');
+  sCtx.beginPath();sCtx.moveTo(-200,H*.42);sCtx.lineTo(200,H*.42);sCtx.strokeStyle=gg;sCtx.lineWidth=1;sCtx.stroke();
+  sCtx.restore();
+}
+function tickSR(irr,arc,tilt){
+  const W=srC.width,H=srC.height;srCtx.clearRect(0,0,W,H);if(irr<250)return;
+  const col=SOLAR[sDesign].color,alpha=Math.min(irr/1000,.85)*.6,ra=(tilt+20)*Math.PI/180;
+  sRayPhases.forEach((r,i)=>{
+    r.phase+=r.speed*.02;const t=r.phase%1,cy2=(H*.6)*t;const len=r.len,x=80+i*((W-160)/NR);
+    srCtx.save();srCtx.translate(x,cy2-20);srCtx.rotate(ra);
+    const rg=srCtx.createLinearGradient(0,-len/2,0,len/2);rg.addColorStop(0,'transparent');rg.addColorStop(.4,col);rg.addColorStop(1,'transparent');
+    srCtx.beginPath();srCtx.moveTo(0,-len/2);srCtx.lineTo(0,len/2);srCtx.strokeStyle=rg;srCtx.globalAlpha=alpha*(1-arc*.003);srCtx.lineWidth=1.5;srCtx.stroke();
+    if(arc<80){srCtx.rotate(-ra*2);const rg2=srCtx.createLinearGradient(0,0,0,-len);rg2.addColorStop(0,col);rg2.addColorStop(1,'transparent');srCtx.beginPath();srCtx.moveTo(0,0);srCtx.lineTo(0,-len);srCtx.strokeStyle=rg2;srCtx.globalAlpha=alpha*(1-arc/100)*.5;srCtx.lineWidth=1;srCtx.stroke();}
+    srCtx.restore();
+  });
+}
+
+/* ── COMPUTE ── */
+function computeWind(){
+  const ws=parseFloat(document.getElementById('sWS').value);
+  const turb=parseFloat(document.getElementById('sTurb').value);
+  const pitch=parseFloat(document.getElementById('sPitch').value);
+  const bl=parseFloat(document.getElementById('sBL').value);
+  const rho=parseFloat(document.getElementById('sRho').value);
+  const rpm=parseFloat(document.getElementById('sRPM').value);
+  const blades=parseInt(document.getElementById('selBlades').value);
+  document.getElementById('vWS').textContent=ws.toFixed(1);
+  document.getElementById('vTurb').textContent=turb;
+  document.getElementById('vPitch').textContent=pitch;
+  document.getElementById('vBL').textContent=bl;
+  document.getElementById('vRho').textContent=rho.toFixed(2);
+  document.getElementById('vRPM').textContent=rpm;
+  ['sWS','sTurb','sPitch','sBL','sRho','sRPM'].forEach(id=>{
+    const el=document.getElementById(id);el.style.setProperty('--p',((el.value-el.min)/(el.max-el.min)*100).toFixed(1)+'%');
+  });
+  // PowerCone controls
+  const pcc=document.getElementById('pcControls');
+  pcc.style.display=wDesign==='maple'?'block':'none';
+  if(wDesign==='maple'){
+    document.getElementById('vCBL').textContent=document.getElementById('sCBL').value;
+    document.getElementById('vCPitch').textContent=document.getElementById('sCPitch').value;
+    document.getElementById('vCSpin').textContent=parseFloat(document.getElementById('sCSpin').value).toFixed(1);
+    document.getElementById('vCTaper').textContent=document.getElementById('sCTaper').value;
+    ['sCBL','sCPitch','sCSpin','sCTaper'].forEach(id=>{
+      const el=document.getElementById(id);el.style.setProperty('--p',((el.value-el.min)/(el.max-el.min)*100).toFixed(1)+'%');
+    });
+  }
+  const m=WIND[wDesign];
+  const pF=1-Math.abs(pitch-7)*0.013,tF=1-turb*0.004,bF=0.88+blades*0.04;
+  const cp=Math.max(0.04,m.cp*pF*tF*bF);
+  const area=Math.PI*bl*bl;
+  const power=0.5*rho*area*Math.pow(ws,3)*cp/1000;
+  const eff=(cp/0.593)*100,loss=100-eff;
+  const noise=m.noiseBase+ws*m.noiseK+turb*.06;
+  const cl=m.cl*pF,cd=m.cd*(1+turb*.003),ld=cl/cd;
+  setM('mWPow',power.toFixed(1),'kW',Math.min(power/5000,1));
+  setM('mWCL',cl.toFixed(2),'',Math.min(cl/1.5,1));
+  setM('mWCD',cd.toFixed(3),'',1-Math.min(cd/.1,1));
+  setM('mWLD',ld.toFixed(1),'',Math.min(ld/40,1));
+  setM('mWEff',eff.toFixed(1),'%',eff/100);
+  setM('mWNoise',noise.toFixed(0),'dB',1-Math.min((noise-30)/45,1));
+  setM('mWLoss',loss.toFixed(1),'%',1-loss/70);
+  document.getElementById('sbWind').textContent='WIND: '+ws.toFixed(1)+' m/s';
+  document.getElementById('sbMode').textContent='MODE: '+wDesign.toUpperCase();
+  updateWC(ws,power,noise,eff,rho,bl,cp);
+}
+function computeSolar(){
+  const irr=parseFloat(document.getElementById('sIrr').value);
+  const tilt=parseFloat(document.getElementById('sTilt').value);
+  const temp=parseFloat(document.getElementById('sTemp').value);
+  const dust=parseFloat(document.getElementById('sDust').value);
+  const area=parseFloat(document.getElementById('sArea').value);
+  const arc=parseFloat(document.getElementById('sARC').value);
+  document.getElementById('vIrr').textContent=irr;document.getElementById('vTilt').textContent=tilt;
+  document.getElementById('vTemp').textContent=temp;document.getElementById('vDust').textContent=dust;
+  document.getElementById('vArea').textContent=area;document.getElementById('vARC').textContent=arc;
+  ['sIrr','sTilt','sTemp','sDust','sArea','sARC'].forEach(id=>{
+    const el=document.getElementById(id);el.style.setProperty('--p',((el.value-el.min)/(el.max-el.min)*100).toFixed(1)+'%');
+  });
+  const m=SOLAR[sDesign];
+  const tE=Math.cos((tilt-25)*Math.PI/180)*0.95+0.05;
+  const tL=Math.max(0,(temp-25)*m.tempK),dL=dust*0.003,aB=arc*.0006;
+  const eff=Math.min(0.40,m.baseEff*(1-tL-dL)+aB+m.absBonus);
+  const rL=(m.refBase*(1-arc*.008))*100;
+  const abs=Math.min(99,(1-m.refBase*(1-arc*.008))*100+m.absBonus*100);
+  const power=eff*area*irr*tE,daily=power*5/1000;
+  setSM('mSPow',power.toFixed(1),'W',Math.min(power/2000,1));
+  setSM('mSEff',(eff*100).toFixed(1),'%',eff/.4);
+  setSM('mSAbs',abs.toFixed(1),'%',abs/100);
+  setSM('mSRef',Math.max(0,rL).toFixed(1),'%',1-rL/20);
+  setSM('mSTLoss',(tL*100).toFixed(1),'%',1-tL);
+  setSM('mSDaily',daily.toFixed(2),'kWh',Math.min(daily/10,1));
+  document.getElementById('sbSolar').textContent='IRRADIANCE: '+irr+' W/m²';
+  drawSolar(irr,tilt,dust,arc);tickSR(irr,arc,tilt);
+}
+
+function setM(id,v,u,f){const el=document.getElementById(id);el.innerHTML=v+(u?`<span class="metric-unit">${u}</span>`:'');el.closest('.metric').style.setProperty('--fill',(Math.max(0,Math.min(1,f||0))*100)+'%');}
+function setSM(id,v,u,f){const el=document.getElementById(id);el.innerHTML=v+(u?`<span class="metric-unit">${u}</span>`:'');el.closest('.metric').style.setProperty('--fill',(Math.max(0,Math.min(1,f||0))*100)+'%');}
+
+/* ── CHARTS ── */
+Chart.defaults.color='rgba(200,225,210,0.45)';Chart.defaults.borderColor='rgba(76,175,110,0.07)';
+const bcOpts={responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{labels:{color:'rgba(200,225,210,0.45)',font:{size:8,family:'DM Mono'},boxWidth:8,padding:6}}},
+  scales:{x:{ticks:{color:'rgba(200,225,210,0.32)',font:{size:8}},grid:{color:'rgba(76,175,110,0.05)'}},
+          y:{ticks:{color:'rgba(200,225,210,0.32)',font:{size:8}},grid:{color:'rgba(76,175,110,0.06)'}}}};
+const effChart=new Chart(document.getElementById('cEff'),{type:'bar',data:{labels:['Conv','Owl','Whale','Maple'],datasets:[
+  {label:'Cp×100',data:[40,38,44,42],backgroundColor:['rgba(76,175,110,.7)','rgba(155,130,204,.7)','rgba(61,201,176,.7)','rgba(212,168,67,.7)'],borderRadius:4},
+  {label:'L/D÷2', data:[10,13.5,18.5,12.5],backgroundColor:['rgba(76,175,110,.3)','rgba(155,130,204,.3)','rgba(61,201,176,.3)','rgba(212,168,67,.3)'],borderRadius:4}
+]},options:{...bcOpts}});
+const powChart=new Chart(document.getElementById('cPow'),{type:'line',data:{labels:['0','3','5','8','10','12','15','18','20','25'],datasets:[
+  {label:'Conv', data:[0,2,12,50,110,200,380,550,700,900], borderColor:'#4caf6e',backgroundColor:'rgba(76,175,110,.08)',tension:.4,fill:true,pointRadius:2,borderWidth:2},
+  {label:'Owl',  data:[0,2,11,47,104,190,360,520,660,860], borderColor:'#9b82cc',backgroundColor:'rgba(155,130,204,.06)',tension:.4,fill:true,pointRadius:2,borderWidth:2},
+  {label:'Whale',data:[0,3,14,58,128,232,440,640,810,1040],borderColor:'#3dc9b0',backgroundColor:'rgba(61,201,176,.06)',tension:.4,fill:true,pointRadius:2,borderWidth:2},
+  {label:'Maple',data:[0,3,13,54,118,214,405,590,748,960], borderColor:'#d4a843',backgroundColor:'rgba(212,168,67,.06)',tension:.4,fill:true,pointRadius:2,borderWidth:2}
+]},options:{...bcOpts}});
+const noiseChart=new Chart(document.getElementById('cNoise'),{type:'bar',data:{labels:['Conv','Owl','Whale','Maple'],datasets:[{label:'Noise dB',data:[74.6,39.6,63,54.8],backgroundColor:['rgba(224,96,96,.7)','rgba(155,130,204,.7)','rgba(61,201,176,.7)','rgba(212,168,67,.7)'],borderRadius:4}]},options:{...bcOpts}});
+const ldChart=new Chart(document.getElementById('cLD'),{type:'bar',data:{labels:['Conv','Owl','Whale','Maple'],datasets:[{label:'L/D Ratio',data:[20,27,37,25],backgroundColor:['rgba(76,175,110,.7)','rgba(155,130,204,.7)','rgba(61,201,176,.7)','rgba(212,168,67,.7)'],borderRadius:4}]},options:{...bcOpts}});
+const lightChart=new Chart(document.getElementById('cLight'),{type:'radar',data:{labels:['Absorption','Efficiency','Low Reflect','Thermal Mgmt','Durability'],datasets:[
+  {label:'Conv',     data:[70,60,65,55,90],borderColor:'#d4a843',backgroundColor:'rgba(212,168,67,.1)',pointRadius:2,borderWidth:1.5},
+  {label:'Leaf',     data:[78,72,72,90,85],borderColor:'#4caf6e',backgroundColor:'rgba(76,175,110,.1)',pointRadius:2,borderWidth:1.5},
+  {label:'Butterfly',data:[85,80,78,72,78],borderColor:'#9b82cc',backgroundColor:'rgba(155,130,204,.1)',pointRadius:2,borderWidth:1.5},
+  {label:'Moth',     data:[95,88,95,80,82],borderColor:'#3dc9b0',backgroundColor:'rgba(61,201,176,.1)',pointRadius:2,borderWidth:1.5}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'rgba(200,225,210,0.45)',font:{size:8,family:'DM Mono'},boxWidth:8,padding:6}}},
+  scales:{r:{ticks:{color:'rgba(200,225,210,0.28)',backdropColor:'transparent',font:{size:7}},grid:{color:'rgba(76,175,110,0.08)'},pointLabels:{color:'rgba(200,225,210,0.45)',font:{size:7,family:'DM Mono'}}}}}});
+const solarEffChart=new Chart(document.getElementById('cSolarEff'),{type:'bar',data:{labels:['Conventional','Leaf','Butterfly','Moth'],datasets:[{label:'Base Efficiency (%)',data:[18,21,23,25],backgroundColor:['rgba(212,168,67,.7)','rgba(76,175,110,.7)','rgba(155,130,204,.7)','rgba(61,201,176,.7)'],borderRadius:4}]},options:{...bcOpts}});
+
+function updateWC(ws,power,noise,eff,rho,bl,cp){
+  const area=Math.PI*bl*bl,wsa=[0,3,5,8,10,12,15,18,20,25],idx=['conv','owl','whale','maple'];
+  powChart.data.datasets.forEach((ds,i)=>{const m=WIND[idx[i]];ds.data=wsa.map(v=>+(0.5*rho*area*v**3*m.cp/1000).toFixed(1));});powChart.update('none');
+  noiseChart.data.datasets[0].data=idx.map(k=>+(WIND[k].noiseBase+ws*WIND[k].noiseK).toFixed(1));noiseChart.update('none');
+  effChart.data.datasets[0].data=idx.map(k=>+(WIND[k].cp*100).toFixed(1));effChart.update('none');
+  const pF=1-Math.abs(parseFloat(document.getElementById('sPitch').value)-7)*0.013;
+  ldChart.data.datasets[0].data=idx.map(k=>+(WIND[k].ld*pF).toFixed(1));ldChart.update('none');
+}
+
+/* ── MAIN LOOP ── */
+function loop(ts){
+  const dt=Math.min((ts-lastTs)/1000,.05);lastTs=ts;
+  const ws=parseFloat(document.getElementById('sWS').value);
+  const turb=parseFloat(document.getElementById('sTurb').value);
+  const rpm=parseFloat(document.getElementById('sRPM').value);
+  const tw=Math.sin(turbPhase*.7)*turb*.05;
+  if(ws>.5)rotAngle=(rotAngle+(rpm/60)*360*dt*(1+tw))%360;
+  const sr=wDesign==='maple'?parseFloat(document.getElementById('sCSpin').value):2.1;
+  if(wDesign==='maple')powerConeAngle=(powerConeAngle+(rpm/60)*360*dt*sr*(1+tw))%360;
+  if(activeModule==='wind'){drawWind(rotAngle);tickWP(ws,turb);}
+  requestAnimationFrame(loop);
+}
+
+/* ── EVENTS ── */
+document.querySelectorAll('[data-wdesign]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-wdesign]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');wDesign=btn.dataset.wdesign;
+    document.getElementById('windInfo').innerHTML=WIND[wDesign].info;computeWind();
+  });
+});
+document.querySelectorAll('[data-sdesign]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-sdesign]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');sDesign=btn.dataset.sdesign;
+    document.getElementById('solarInfo').innerHTML=SOLAR[sDesign].info;computeSolar();
+  });
+});
+document.querySelectorAll('input[type=range],select').forEach(el=>{
+  el.addEventListener('input',()=>{computeWind();computeSolar();});
+});
+window.addEventListener('resize',()=>{resizeWind();resizeSolar();computeWind();computeSolar();});
+
+/* ── INIT ── */
+resizeWind();resizeSolar();computeWind();computeSolar();
+requestAnimationFrame(ts=>{lastTs=ts;loop(ts);});
+</script>
+</body>
+</html>
